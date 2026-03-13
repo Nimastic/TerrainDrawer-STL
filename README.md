@@ -256,6 +256,68 @@ If you do not have a multi-color printer:
 
 ---
 
+## Cropping an exported terrain STL
+
+If you want to trim the terrain after export, use `crop_terrain_stl.py`.
+
+What it does:
+- removes a fraction from the positive X side of `terrain_solid.stl`
+- rebuilds the terrain as a watertight solid
+- closes the cut face so the cropped side is capped, not exposed
+- preserves the original flat base thickness
+
+This helper is dependency-free and works directly on the exported binary STL.
+
+### Example: remove the rightmost 10%
+
+```bash
+python3 crop_terrain_stl.py \
+  --input output/terrain_solid.stl \
+  --output output/terrain_solid_cropped_right_10pct_capped.stl \
+  --crop-right-fraction 0.1
+```
+
+This writes a new cropped STL and keeps the original file unchanged.
+
+### Replace the terrain STL in place
+
+If you want the cropped file to become your main terrain STL:
+
+```bash
+cp output/terrain_solid_cropped_right_10pct_capped.stl output/terrain_solid.stl
+```
+
+### Rebuild the combined STL after cropping
+
+If your route overlay still lies fully inside the kept terrain area, rebuild the combined STL with:
+
+```bash
+python3 merge_binary_stl.py \
+  --output output/terrain_with_route_combined.stl \
+  output/terrain_solid.stl \
+  output/route_overlay_only.stl
+```
+
+`merge_binary_stl.py` simply merges multiple binary STL files into one binary STL.
+
+### Important note about the route overlay
+
+If `route_overlay_only.stl` extends into the part of the terrain you removed, do not merge it unchanged.
+
+In that case, either:
+- rerun `draw_route_on_terrain.py` from the source terrain and route points, or
+- crop the route mesh separately before rebuilding the combined STL
+
+### Useful crop values
+
+```bash
+--crop-right-fraction 0.05   # remove 5% from the right side
+--crop-right-fraction 0.10   # remove 10% from the right side
+--crop-right-fraction 0.20   # remove 20% from the right side
+```
+
+---
+
 ## Troubleshooting
 
 ### The route looks mirrored or upside down
@@ -339,13 +401,14 @@ python draw_route_on_terrain.py \
 6. Inspect:
    - `route_preview.png`
    - `terrain_with_orange_route_preview.glb`
-7. For one-color printing, print `terrain_with_route_combined.stl`.
-8. For multi-color printing, load:
+7. Optionally crop `terrain_solid.stl` and rebuild `terrain_with_route_combined.stl`.
+8. For one-color printing, print `terrain_with_route_combined.stl`.
+9. For multi-color printing, load:
    - `terrain_solid.stl`
    - `route_overlay_only.stl`
    into your slicer as one assembled model.
-9. Assign the route to orange filament.
-10. Slice and print.
+10. Assign the route to orange filament.
+11. Slice and print.
 
 ---
 
